@@ -1,0 +1,293 @@
+---
+title: "Turning kindle notes into a data.frame"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+It is my dream to do everything with R. And we aRe LEKKER ONDERWEG.
+We can write blogs in blogdown, or bookdown, write reports in Rmarkdown
+(thank you [Yihui Xie!](https://twitter.com/xieyihui)) create interactive
+webpages with shiny (thank you [Winston Chang](https://twitter.com/winston_chang))
+
+There's novels of my vision for example chapter 40 of [A Dr. Primestein Adventure™ The Day the Priming Stopped](http://www.psi-chology.com/the-day-the-priming-stopped/) says:
+
+> “This Fortress is a monumental technological
+achievement,” explained Professor Power. “Every
+aspect of the Fortress’s security is run by R.” As they
+arrived at the metal doors, the Professor pressed a
+small button on the wall to the right. “This is an
+elevatoR, run by its own R package.” They waited for
+the doors to open, but nothing happened.
+After a few minutes of alternately waiting and
+then mashing the elevatoR button, Professor Power
+called someone on his mobile phone. “The eleva-
+toR is not working...what? Why would they do
+that?...call Hadley Wickham!...doesn’t anyone around
+here check packages against the development version
+of R before upgrading?...yes, we’ll wait.”
+“Someone upgraded R without permission. Should
+be fixed soon,” Professor Power explained.
+
+
+But enough about jokeRs and jesteRs,
+As it is my life long mission to do everything in R and preferably in the
+[tidyverse](http://tidyverse.org/), I found something that wasn't tidy. `r emo::ji("disappointed")` 
+
+# kindle notes and highlights.
+I have a 2010 kindle to read E-books on and once in a while I make write a note or highlight some text in the book. If you connect your kindle to the computer you can extract the highlight when you copy the file `My Clippings.txt' to your computer. 
+
+This is great, it's a text file which means you can open it on every computer
+and search throug the contents. However...
+It's not tidy. 
+Let's change that. 
+
+1. Create a new project in Rstudio
+2. Create a new folder called `data` (or don't but really this is neat isn't it?)
+3. Copy the `My Clippings.txt` file to that `data`-folder
+4. Load the tidyverse `library(tidyverse)'
+5. Hammer away untill the txt file is a data frame.
+6. profit?
+
+
+### What is in this text file?
+
+I've found that the text file is structured in a particular way
+
+```
+title  (author)
+- Highlight on Page 128 | Loc. 1962-68  | Added on Sunday, December 27, 2015, 03:09 PM
+<empty line>
+highlighted text
+==========
+title of the next highlighted book (author)
+etc.
+```
+
+**So how do we force this into a data frame?**
+
+Recognize the structure ( we will create functions for that)
+
+- Chunks end with the ten ===== signs, we can split on that
+- first line is the title and (author)
+- *we can seperate the author and the title*
+- next line of information is devided by '|' signs. 
+- *type, page, location, added date and time (in american time of course...)*
+- highlighted text (or if it is a bookmark, nothing)
+
+
+```{r working on the problem}
+library(tidyverse)
+raw_text <- read_file("data/My Clippings.txt") # read in the text file
+per_chunk <- unlist(strsplit(raw_text, "=========="))  # seperate into chunks
+per_chunk[4]
+```
+
+Above I have created seperate chunks that represent seperate 
+highlights. And a 
+example so you can see what I see.
+
+Now for extracting the seperate elements.
+I create functions that do one thing.
+
+```{r functions for one thing}
+# This function takes a chunk of character information
+# and seperates it into lines. 
+seperate_into_lines <- function(chunk){
+    result <- stringr::str_split(chunk, "\r\n")
+    unlist(result)
+}
+# result <- seperate_into_lines(per_chunk[100])  # testing if this works 
+## you should put this into formal test frameworks such as testhat if you
+## build a package. 
+
+
+
+# Extract title sentance and remove author
+# This function presumes that you already extracted the raw data into
+# character chunks.
+extract_title <- function(linechunk){
+    # search for second line
+    titleline <- linechunk[2]
+    return <- gsub("\\(.*\\)", "", titleline) # it took me some 
+            #time to work this regular expression out.
+    stringr::str_trim(return, side = "both") # remove whitespace at ends
+}
+#extract_title(result) # testcase to see if it works for me.
+
+
+# Extract the author from chunk, this function looks 
+# very much like the one above, it uses the same logic.
+extract_author <- function(linechunk){
+    # search for second line
+    titleline <- linechunk[2] # identical
+    author <- stringr::str_extract(titleline, "\\(.*\\)") # extract piece
+    return <- gsub("\\(|\\)", "", author)  # 
+    stringr::str_trim(return, side = "both")
+}
+# extract_author(result)
+```
+
+Let's see if this works on a subset of the data.
+I usually take multiple notes in one book before I open another, so in this
+case the first 20 notes are really boring and all from the same book. To 
+spice this up I take a random subset of rows.
+I will use a simple for-loop here, but I will use functional programming
+in the end-result. It works kind of the same, but is more explicit.
+
+Some people will tell you that for-loops are slow in R, or that 'loops are bad' but they don't know 
+what they are talking about.^[2] 
+
+I first create a data_frame^[1] and pre-populate it.
+
+```{r testing functions}
+# testset <- per_chunk[1:20]  # You would use this if you want the first 20 pieces.
+set.seed(4579)  # if you do random stuff, it is wise to 
+# set the seed so that others can reproduce your work.
+testset <- per_chunk[base::sample(x =1:length(per_chunk),size = 20)] 
+# unfortunately dplyr also has a function called sample. to specify that
+# we want the 'normal' one I specify the name of the package followed by
+# two ':'. 
+testingframe <- data_frame(
+    author = character(length = length(testset)),
+    title = character(length(testset)))
+for( i in seq_along(testset)){
+    hold <- testset[i] %>% seperate_into_lines()
+    testingframe$author[i] <- hold %>% extract_author()
+    testingframe$title <- hold %>% extract_title()
+}
+testingframe
+```
+
+The author and title functions seem to work, let's extract some more information.
+The third row contained multiple pieces of information
+
+example:
+```
+- Highlight on Page 132 | Loc. 2017-20  | Added on Saturday, August 20, 2016, 09:37 AM
+```
+Like the first functions we first select the correct row^[3] and than
+apply some magic.
+
+```{r meta info extraction}
+
+# this function extracts all the pieces
+# and subsequent functions will deal with the seperate stuff.
+extract_type_location_date <- function(linechunk){
+    meta_row <- linechunk[3]
+    pieces <- stringr::str_split(meta_row, "\\|") # the literal character, 
+    # the '|' has a special meaning in regexp.
+    unlist(pieces)
+}
+# extract_type_location_date(result) # test function
+
+# extract type from combined result.
+# Here the use of the pipe `%>%` operator 
+# makes the steps clear.
+extract_type <- function(pieces){
+    pieces[1] %>%  # select the first row
+        stringr::str_extract( "- [[:alnum:]]{1,} ") %>% # extract at least one character.
+        gsub("-", "", .) %>% # replace - with nothing, removing it
+        stringr::str_trim( side = "both") # remove whitespace at both sides
+}
+# extract_type_location_date(result) %>% 
+#     extract_type()
+
+
+# extract page number by selecting first piece,
+# trimming off of whitespace
+# selecting a number, at least 1 times, followed by end of line.
+extract_pagenumber <- function(pieces){
+    pieces[1] %>%
+        stringr::str_trim( side = "right") %>% # remove right end
+        stringr::str_extract("[0-9]{1,}$") %>% 
+        as.numeric()
+}
+# extract_type_location_date(result) %>%
+#     extract_pagenumber()
+
+# Extract locations. Just like above.
+extract_locations <- function(pieces){
+    pieces[2] %>% 
+        stringr::str_trim( side = "both") %>% 
+        stringr::str_extract("[0-9]{1,}-[0-9]{1,}$")
+}
+# extract_type_location_date(result) %>% 
+#     extract_locations()
+
+# Extract date and convert to standard time, not US centric.
+# I use the strptime from the base package here. The time is 
+# US-centric, but structured, so we can use the formatting from strptime.
+# For example: %B is Full month name in the current locale
+# and %I:%M %p means hours, minutes, am/pm. 
+extract_date <- function(pieces){
+    pieces[3] %>% 
+        stringr::str_trim( side = "both") %>% 
+        stringr::str_extract("[A-z]{3,} [0-9]{1,2}, [0-9]{4}, [0-9]{2}:[0-9]{2} [A-Z]{2}") %>% 
+        strptime(format = "%B %e, %Y, %I:%M %p") 
+}
+
+# Extract the highlight part.
+extract_highlights <- function(linechunk){
+    linechunk[5]
+}
+# extract_highlights(result)
+```
+
+
+In general:
+
+- Split into chunks  (already did that: per_chunk)
+- Create a data frame
+- Apply extractors per chunk into data_frame
+
+* I would really love it if someone showed me how to do this with purrr
+
+
+```{r extracting content}
+finalframe <- data_frame(
+    author = character(length = length(testset)),
+    title = character(length(testset)),
+    location = character(length(testset)),
+    pagenr = numeric(length(testset)),
+    type = character(length(testset)),
+    highlight = character(length(testset))
+    )
+# loop through all values 
+for( i in seq_along(testset)){
+    hold <- testset[i] %>% seperate_into_lines()
+    finalframe$author[i] <- hold %>% extract_author()
+    finalframe$title[i] <- hold %>% extract_title()
+    finalframe$location[i] <- hold %>% extract_type_location_date() %>% extract_locations()
+    finalframe$pagenr[i] <- hold %>% extract_type_location_date() %>% extract_pagenumber()
+    finalframe$type[i] <- hold %>% extract_type_location_date() %>% extract_type()
+    finalframe$highlight[i] <- hold %>% extract_highlights()
+}
+finalframe
+```
+
+
+
+## Notes
+[1]: I use the tidyverse form called tibble or data_frame, it is like a data.frame but it never converts character to factor and never adds rownames . See more at `?tibble::tibble`.
+ 
+[2]: Sometimes loops are slow when R doesn't know
+how large the end result will be. That happens when you create a data.frame and add rows per loop. Growing objects that way forces R to copy the content
+of the object into a new place in memory with added space for the new content. If you know how large the object will be, f.i. the number of rows and columns. You can specify this at the start and loop through the rows while you add info. Superfast. 
+
+[3]: This is absolutely not a robust way of programming, if the format ever changes, all my functions are screwed. 
+
+
+
+
+### state of machine
+
+<details>
+<summary> click to expand to see machine info</summary>
+
+```{r session information}
+sessioninfo::session_info()
+```
+</details>
