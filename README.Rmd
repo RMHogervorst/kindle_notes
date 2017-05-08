@@ -1,5 +1,5 @@
 ---
-title: "Turning kindle notes into a data.frame"
+title: "Turning kindle notes into a tidy data"
 output: github_document
 ---
 
@@ -7,12 +7,12 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-It is my dream to do everything with R. And we aRe LEKKER ONDERWEG.
-We can write blogs in blogdown, or bookdown, write reports in Rmarkdown
+It is my dream to do everything with R. And we aRe almost there.
+We can write blogs in blogdown or bookdown, write reports in RMarkdown
 (thank you [Yihui Xie!](https://twitter.com/xieyihui)) create interactive
-webpages with shiny (thank you [Winston Chang](https://twitter.com/winston_chang))
+webpages with Shiny (thank you [Winston Chang](https://twitter.com/winston_chang)). Control our lifx lights with [lifxr](https://github.com/cboettig/lifxr) (great work [Carl!](http://carlboettiger.info/)) and use emoticons everywhere with the emo package. 
 
-There's novels of my vision for example chapter 40 of [A Dr. Primestein Adventure™ The Day the Priming Stopped](http://www.psi-chology.com/the-day-the-priming-stopped/) says:
+There is even a novel of my vision! I recently found chapter 40 of [A Dr. Primestein Adventure™ The Day the Priming Stopped](http://www.psi-chology.com/the-day-the-priming-stopped/). There is a scene in there which says:
 
 > “This Fortress is a monumental technological
 achievement,” explained Professor Power. “Every
@@ -31,18 +31,20 @@ of R before upgrading?...yes, we’ll wait.”
 “Someone upgraded R without permission. Should
 be fixed soon,” Professor Power explained.
 
-
-But enough about jokeRs and jesteRs,
+But enough about jokeRs and jesteRs. 
 As it is my life long mission to do everything in R and preferably in the
-[tidyverse](http://tidyverse.org/), I found something that wasn't tidy. `r emo::ji("disappointed")` 
+[tidyverse](http://tidyverse.org/), I found something that wasn't tidy `r emo::ji("disappointed")` !!! Kindle notes!
 
 # kindle notes and highlights.
-I have a 2010 kindle to read E-books on and once in a while I make write a note or highlight some text in the book. If you connect your kindle to the computer you can extract the highlight when you copy the file `My Clippings.txt' to your computer. 
+I have a 2010 kindle to read E-books on and once in a while I write a note or highlight some text in the book. If you connect your kindle to the computer you can extract the highlights by copying the file `My Clippings.txt' to your computer. 
 
 This is great, it's a text file which means you can open it on every computer
 and search throug the contents. However...
-It's not tidy. 
-Let's change that. 
+
+
+> It's not tidy. 
+
+Let's change that. The general procedure is thus:
 
 1. Create a new project in Rstudio
 2. Create a new folder called `data` (or don't but really this is neat isn't it?)
@@ -54,7 +56,8 @@ Let's change that.
 
 ### What is in this text file?
 
-I've found that the text file is structured in a particular way
+First we do some exploratory work on the file.
+I've found that the text file is structured in a particular way:
 
 ```
 title  (author)
@@ -138,9 +141,9 @@ I will use a simple for-loop here, but I will use functional programming
 in the end-result. It works kind of the same, but is more explicit.
 
 Some people will tell you that for-loops are slow in R, or that 'loops are bad' but they don't know 
-what they are talking about.^[2] 
+what they are talking about.^[^1] 
 
-I first create a data_frame^[1] and pre-populate it.
+I first create a data_frame [^2] and pre-populate it.
 
 ```{r testing functions}
 # testset <- per_chunk[1:20]  # You would use this if you want the first 20 pieces.
@@ -168,7 +171,7 @@ example:
 ```
 - Highlight on Page 132 | Loc. 2017-20  | Added on Saturday, August 20, 2016, 09:37 AM
 ```
-Like the first functions we first select the correct row^[3] and than
+Like the first functions we first select the correct row [^3] and than
 apply some magic.
 
 ```{r meta info extraction}
@@ -270,15 +273,6 @@ finalframe
 
 
 
-## Notes
-[1]: I use the tidyverse form called tibble or data_frame, it is like a data.frame but it never converts character to factor and never adds rownames . See more at `?tibble::tibble`.
- 
-[2]: Sometimes loops are slow when R doesn't know
-how large the end result will be. That happens when you create a data.frame and add rows per loop. Growing objects that way forces R to copy the content
-of the object into a new place in memory with added space for the new content. If you know how large the object will be, f.i. the number of rows and columns. You can specify this at the start and loop through the rows while you add info. Superfast. 
-
-[3]: This is absolutely not a robust way of programming, if the format ever changes, all my functions are screwed. 
-
 
 
 
@@ -291,3 +285,13 @@ of the object into a new place in memory with added space for the new content. I
 sessioninfo::session_info()
 ```
 </details>
+
+## Notes
+[^1]: Sometimes loops are slow when R doesn't know
+how large the end result will be. That happens when you create a data.frame and add rows per loop. Growing objects that way forces R to copy the content
+of the object into a new place in memory with added space for the new content. If you know how large the object will be, f.i. the number of rows and columns. You can specify this at the start and loop through the rows while you add info. Superfast. 
+ 
+[^2]: I use the tidyverse form of a data.frame called tibble or data_frame, it is like a data.frame but it never converts character to factor and never adds rownames . See more at `?tibble::tibble`.
+
+[^3]: This is absolutely not a robust way of programming, if the format ever changes, all my functions are screwed. 
+
